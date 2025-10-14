@@ -19,12 +19,19 @@ type Row struct {
 func main() {
 	a := app.New()
 	w := a.NewWindow("Barcode Table")
-	w.Resize(fyne.NewSize(400, 300))
+	w.Resize(fyne.NewSize(500, 350))
 
-	// Create the initial 3 rows
 	rows := make([]*Row, 0)
+	rowCounter := 0 // To keep track of the row index for auto-fill
 
+	// Table container
 	tableContainer := container.NewVBox()
+
+	// Output path entry above table
+	outputPathEntry := widget.NewEntry()
+	outputPathEntry.SetText("output.tsv") // default path
+	outputPathLabel := widget.NewLabel("Output file path:")
+	outputPathContainer := container.NewBorder(nil, nil, outputPathLabel, nil, outputPathEntry)
 
 	// Add header
 	header := container.NewGridWithColumns(2,
@@ -35,47 +42,54 @@ func main() {
 
 	// Function to add a new row
 	addRow := func() {
+		barcodeText := fmt.Sprintf("barcode%02d", rowCounter)
+		sampleText := fmt.Sprintf("barcode%02d", rowCounter)
+
 		r := &Row{
 			Barcode:  widget.NewEntry(),
 			SampleID: widget.NewEntry(),
 		}
+		r.Barcode.SetText(barcodeText)
+		r.SampleID.SetText(sampleText)
+
 		rowUI := container.NewGridWithColumns(2, r.Barcode, r.SampleID)
 		tableContainer.Add(rowUI)
 		rows = append(rows, r)
+		rowCounter++
 	}
 
-	// Start with 3 default rows
+	// Initialize with 3 rows
 	for i := 0; i < 3; i++ {
 		addRow()
 	}
 
-	// Button to add row
-	addButton := widget.NewButton("Add Row", func() {
-		addRow()
-	})
+	// Buttons
+	addButton := widget.NewButton("Add Row", addRow)
 
-	// Button to delete the last row
 	deleteButton := widget.NewButton("Delete Last Row", func() {
 		if len(rows) > 0 {
 			lastIndex := len(rows) - 1
 			tableContainer.Objects = tableContainer.Objects[:len(tableContainer.Objects)-1]
 			rows = rows[:lastIndex]
 			tableContainer.Refresh()
+			rowCounter-- // Decrement counter so next new row continues numbering correctly
 		}
 	})
 
-	// Button to save to TSV file
 	saveButton := widget.NewButton("Save to TSV", func() {
+		filePath := outputPathEntry.Text
+		if strings.TrimSpace(filePath) == "" {
+			filePath = "output.tsv"
+		}
+
 		var sb strings.Builder
-		// Write header
 		sb.WriteString("barcode\tsample_id\n")
-		// Write rows
 		for _, r := range rows {
 			line := fmt.Sprintf("%s\t%s\n", r.Barcode.Text, r.SampleID.Text)
 			sb.WriteString(line)
 		}
 
-		file, err := os.Create("output.tsv")
+		file, err := os.Create(filePath)
 		if err != nil {
 			fmt.Println("Error creating file:", err)
 			return
@@ -88,13 +102,14 @@ func main() {
 			return
 		}
 
-		dialog := widget.NewLabel("Saved to output.tsv")
-		tableContainer.Add(dialog)
+		// Show a simple confirmation message in the GUI
+		msg := widget.NewLabel(fmt.Sprintf("Saved to %s", filePath))
+		tableContainer.Add(msg)
 		tableContainer.Refresh()
 	})
 
 	buttons := container.NewHBox(addButton, deleteButton, saveButton)
-	mainContent := container.NewBorder(nil, buttons, nil, nil, tableContainer)
+	mainContent := container.NewBorder(outputPathContainer, buttons, nil, nil, tableContainer)
 
 	w.SetContent(mainContent)
 	w.ShowAndRun()
