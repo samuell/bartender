@@ -29,7 +29,7 @@ func main() {
 
 	// Output path entry above table
 	outputPathEntry := widget.NewEntry()
-	outputPathEntry.SetText("output.tsv") // default path
+	outputPathEntry.SetText("output.csv") // default path
 	outputPathLabel := widget.NewLabel("Output file path:")
 	outputPathContainer := container.NewBorder(nil, nil, outputPathLabel, nil, outputPathEntry)
 
@@ -43,7 +43,7 @@ func main() {
 	// Function to add a new row
 	addRow := func() {
 		barcodeText := fmt.Sprintf("barcode%02d", rowCounter)
-		sampleText := fmt.Sprintf("barcode%02d", rowCounter)
+		sampleText := "Fill_in_sample_id_here"
 
 		r := &Row{
 			Barcode:  widget.NewEntry(),
@@ -76,16 +76,16 @@ func main() {
 		}
 	})
 
-	saveButton := widget.NewButton("Save to TSV", func() {
+	saveButton := widget.NewButton("Save to CSV", func() {
 		filePath := outputPathEntry.Text
 		if strings.TrimSpace(filePath) == "" {
-			filePath = "output.tsv"
+			filePath = "output.csv"
 		}
 
 		var sb strings.Builder
-		sb.WriteString("barcode\tsample_id\n")
+		sb.WriteString("barcode,sample_id\n")
 		for _, r := range rows {
-			line := fmt.Sprintf("%s\t%s\n", r.Barcode.Text, r.SampleID.Text)
+			line := fmt.Sprintf("%s,%s\n", r.Barcode.Text, r.SampleID.Text)
 			sb.WriteString(line)
 		}
 
