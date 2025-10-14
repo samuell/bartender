@@ -18,7 +18,7 @@ type Row struct {
 
 func main() {
 	a := app.New()
-	w := a.NewWindow("Barcode Table")
+	w := a.NewWindow("Barcode mapping")
 	w.Resize(fyne.NewSize(500, 350))
 
 	rows := make([]*Row, 0)
@@ -29,7 +29,7 @@ func main() {
 
 	// Output path entry above table
 	outputPathEntry := widget.NewEntry()
-	outputPathEntry.SetText("output.csv") // default path
+	outputPathEntry.SetText("barcodesheet.csv") // default path
 	outputPathLabel := widget.NewLabel("Output file path:")
 	outputPathContainer := container.NewBorder(nil, nil, outputPathLabel, nil, outputPathEntry)
 
@@ -43,14 +43,14 @@ func main() {
 	// Function to add a new row
 	addRow := func() {
 		barcodeText := fmt.Sprintf("barcode%02d", rowCounter)
-		sampleText := "Fill_in_sample_id_here"
+		samplePlaceholder := fmt.Sprintf("Sample ID for barcode%02d", rowCounter)
 
 		r := &Row{
 			Barcode:  widget.NewEntry(),
 			SampleID: widget.NewEntry(),
 		}
 		r.Barcode.SetText(barcodeText)
-		r.SampleID.SetText(sampleText)
+		r.SampleID.SetPlaceHolder(samplePlaceholder)
 
 		rowUI := container.NewGridWithColumns(2, r.Barcode, r.SampleID)
 		tableContainer.Add(rowUI)
