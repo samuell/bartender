@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -21,7 +23,7 @@ func main() {
 	a := app.New()
 
 	w := a.NewWindow("Barcode mapping")
-	w.Resize(fyne.NewSize(500, 350))
+	w.Resize(fyne.NewSize(640, 480))
 
 	rows := make([]*Row, 0)
 	rowCounter := 1 // To keep track of the row index for auto-fill
@@ -111,7 +113,33 @@ func main() {
 
 		// Show a simple confirmation message in the GUI
 		msg := widget.NewLabel(fmt.Sprintf("Saved to %s", filePath))
+
+		openFileButton := widget.NewButton("Open file", func() {
+			fileUrl, err := url.Parse("file://" + filePath)
+			CheckMsg(err, "Could not parse url: "+filePath)
+			a.OpenURL(fileUrl)
+		})
+
+		showInFolderButton := widget.NewButton("Show in folder", func() {
+			var dirPath string
+			if len(filePath) > 0 && filePath[0:1] == "/" {
+				dirPath = filepath.Dir(filePath)
+			} else {
+				ex, err := os.Executable()
+				CheckMsg(err, "Could not get executable path")
+				dirPath = filepath.Dir(ex)
+			}
+
+			dirUrl, err := url.Parse("file://" + dirPath)
+			CheckMsg(err, "Could not parse url: "+dirPath)
+			a.OpenURL(dirUrl)
+		})
+
+		// Show a button to open folder
+
 		tableContainer.Add(msg)
+		tableContainer.Add(openFileButton)
+		tableContainer.Add(showInFolderButton)
 		tableContainer.Refresh()
 	})
 
