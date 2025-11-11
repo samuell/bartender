@@ -14,7 +14,7 @@ import (
 
 type Row struct {
 	Barcode  *widget.Entry
-	SampleID *widget.Entry
+	SampleID *ForwardJumpOnReturnEntry
 }
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 	tableContainer := container.NewVBox()
 
 	// Output path entry above table
-	outputPathEntry := widget.NewEntry()
+	outputPathEntry := NewForwardJumpOnReturnEntry(nil)
 	outputPathEntry.SetText("barcodesheet.csv") // default path
 	outputPathLabel := widget.NewLabel("Output file path:")
 	outputPathContainer := container.NewBorder(nil, nil, outputPathLabel, nil, outputPathEntry)
@@ -47,9 +47,14 @@ func main() {
 		barcodeText := fmt.Sprintf("barcode%02d", rowCounter+1)
 		samplePlaceholder := fmt.Sprintf("Sample ID for barcode%02d", rowCounter+1)
 
+		var previous *ForwardJumpOnReturnEntry
+		if len(rows) > 0 {
+			previous = rows[len(rows)-1].SampleID
+		}
+
 		r := &Row{
 			Barcode:  widget.NewEntry(),
-			SampleID: widget.NewEntry(),
+			SampleID: NewForwardJumpOnReturnEntry(previous),
 		}
 		r.Barcode.SetText(barcodeText)
 		r.SampleID.SetPlaceHolder(samplePlaceholder)
@@ -114,6 +119,38 @@ func main() {
 
 	w.SetContent(mainContent)
 	w.ShowAndRun()
+}
+
+// ForwardJumpOnReturnEntry
+
+func NewForwardJumpOnReturnEntry(previousEntry *ForwardJumpOnReturnEntry) *ForwardJumpOnReturnEntry {
+	entry := &ForwardJumpOnReturnEntry{}
+	entry.ExtendBaseWidget(entry)
+	if previousEntry != nil {
+		previousEntry.SetNext(entry)
+	}
+	return entry
+}
+
+type ForwardJumpOnReturnEntry struct {
+	widget.Entry
+	previous *ForwardJumpOnReturnEntry
+	next     *ForwardJumpOnReturnEntry
+}
+
+func (e *ForwardJumpOnReturnEntry) SetNext(entry *ForwardJumpOnReturnEntry) {
+	e.next = entry
+}
+
+func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
+	if key.Name == fyne.KeyReturn {
+		fmt.Println("Got return press!")
+		if e.next != nil {
+			e.next.SetPlaceHolder("Enter Sample ID now!")
+			e.next.FocusGained()
+			e.FocusLost()
+		}
+	}
 }
 
 func getLastBarcodeNumber(rows []*Row) int {
