@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -22,7 +23,7 @@ func main() {
 	w.Resize(fyne.NewSize(500, 350))
 
 	rows := make([]*Row, 0)
-	rowCounter := 0 // To keep track of the row index for auto-fill
+	rowCounter := 1 // To keep track of the row index for auto-fill
 
 	// Table container
 	tableContainer := container.NewVBox()
@@ -42,8 +43,9 @@ func main() {
 
 	// Function to add a new row
 	addRow := func() {
-		barcodeText := fmt.Sprintf("barcode%02d", rowCounter)
-		samplePlaceholder := fmt.Sprintf("Sample ID for barcode%02d", rowCounter)
+		rowCounter := getLastBarcodeNumber(rows)
+		barcodeText := fmt.Sprintf("barcode%02d", rowCounter+1)
+		samplePlaceholder := fmt.Sprintf("Sample ID for barcode%02d", rowCounter+1)
 
 		r := &Row{
 			Barcode:  widget.NewEntry(),
@@ -55,7 +57,6 @@ func main() {
 		rowUI := container.NewGridWithColumns(2, r.Barcode, r.SampleID)
 		tableContainer.Add(rowUI)
 		rows = append(rows, r)
-		rowCounter++
 	}
 
 	// Initialize with 3 rows
@@ -113,4 +114,21 @@ func main() {
 
 	w.SetContent(mainContent)
 	w.ShowAndRun()
+}
+
+func getLastBarcodeNumber(rows []*Row) int {
+	if len(rows) > 0 {
+		barcodeText := rows[len(rows)-1].Barcode.Text[7:]
+		lastRowIdx, err := strconv.Atoi(barcodeText)
+		CheckMsg(err, "Could not convert to int: "+barcodeText)
+		return lastRowIdx
+	}
+	return 0
+}
+
+func CheckMsg(err error, message string) {
+	if err != nil {
+		fmt.Println(message)
+		os.Exit(1)
+	}
 }
