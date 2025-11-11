@@ -19,6 +19,7 @@ type Row struct {
 
 func main() {
 	a := app.New()
+
 	w := a.NewWindow("Barcode mapping")
 	w.Resize(fyne.NewSize(500, 350))
 
@@ -29,7 +30,7 @@ func main() {
 	tableContainer := container.NewVBox()
 
 	// Output path entry above table
-	outputPathEntry := NewForwardJumpOnReturnEntry(nil)
+	outputPathEntry := NewForwardJumpOnReturnEntry(w.Canvas(), nil)
 	outputPathEntry.SetText("barcodesheet.csv") // default path
 	outputPathLabel := widget.NewLabel("Output file path:")
 	outputPathContainer := container.NewBorder(nil, nil, outputPathLabel, nil, outputPathEntry)
@@ -54,7 +55,7 @@ func main() {
 
 		r := &Row{
 			Barcode:  widget.NewEntry(),
-			SampleID: NewForwardJumpOnReturnEntry(previous),
+			SampleID: NewForwardJumpOnReturnEntry(w.Canvas(), previous),
 		}
 		r.Barcode.SetText(barcodeText)
 		r.SampleID.SetPlaceHolder(samplePlaceholder)
@@ -123,9 +124,10 @@ func main() {
 
 // ForwardJumpOnReturnEntry
 
-func NewForwardJumpOnReturnEntry(previousEntry *ForwardJumpOnReturnEntry) *ForwardJumpOnReturnEntry {
+func NewForwardJumpOnReturnEntry(canvas fyne.Canvas, previousEntry *ForwardJumpOnReturnEntry) *ForwardJumpOnReturnEntry {
 	entry := &ForwardJumpOnReturnEntry{}
 	entry.ExtendBaseWidget(entry)
+	entry.canvas = canvas
 	if previousEntry != nil {
 		previousEntry.SetNext(entry)
 	}
@@ -134,6 +136,7 @@ func NewForwardJumpOnReturnEntry(previousEntry *ForwardJumpOnReturnEntry) *Forwa
 
 type ForwardJumpOnReturnEntry struct {
 	widget.Entry
+	canvas   fyne.Canvas
 	previous *ForwardJumpOnReturnEntry
 	next     *ForwardJumpOnReturnEntry
 }
@@ -144,11 +147,9 @@ func (e *ForwardJumpOnReturnEntry) SetNext(entry *ForwardJumpOnReturnEntry) {
 
 func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
 	if key.Name == fyne.KeyReturn {
-		fmt.Println("Got return press!")
 		if e.next != nil {
 			e.next.SetPlaceHolder("Enter Sample ID now!")
-			e.next.FocusGained()
-			e.FocusLost()
+			e.canvas.Focus(e.next)
 		}
 	}
 }
