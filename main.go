@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -160,6 +159,7 @@ func NewForwardJumpOnReturnEntry(canvas fyne.Canvas, previousEntry *ForwardJumpO
 	if previousEntry != nil {
 		previousEntry.SetNext(entry)
 	}
+	entry.buffer.Reset()
 	return entry
 }
 
@@ -168,22 +168,28 @@ type ForwardJumpOnReturnEntry struct {
 	canvas   fyne.Canvas
 	previous *ForwardJumpOnReturnEntry
 	next     *ForwardJumpOnReturnEntry
+	buffer   strings.Builder
 }
 
 func (e *ForwardJumpOnReturnEntry) SetNext(entry *ForwardJumpOnReturnEntry) {
 	e.next = entry
 }
 
+func (e *ForwardJumpOnReturnEntry) TypedRune(r rune) {
+	e.buffer.WriteRune(r)
+}
+
 func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
 	if key.Name == fyne.KeyReturn {
 		if e.next != nil {
-			time.Sleep(250 * time.Millisecond)
+			//time.Sleep(250 * time.Millisecond)
 			e.next.SetPlaceHolder("Enter Sample ID now!")
 			e.canvas.Focus(e.next)
 			return
 		}
 	}
 
+	e.SetText(e.buffer.String())
 	e.Entry.TypedKey(key)
 }
 
