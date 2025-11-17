@@ -1,7 +1,8 @@
 # Bartender
 
 A small GUI application for entering sample IDs and produce a barcode-sheet for
-the TRANA pipeline, optimized for use with hand scanners.
+the [TRANA](https://github.com/genomic-medicine-sweden/TRANA) taxonomic
+profiling pipeline for 16S rRNA reads, optimized for use with hand scanners.
 
 ## Installation
 
