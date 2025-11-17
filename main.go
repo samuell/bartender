@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -182,7 +183,7 @@ func (e *ForwardJumpOnReturnEntry) TypedRune(r rune) {
 func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
 	if key.Name == fyne.KeyReturn {
 		if e.next != nil {
-			//time.Sleep(250 * time.Millisecond)
+			time.Sleep(250 * time.Millisecond)
 			e.next.SetPlaceHolder("Enter Sample ID now!")
 			e.canvas.Focus(e.next)
 			return
