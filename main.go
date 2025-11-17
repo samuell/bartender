@@ -178,8 +178,11 @@ func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
 		if e.next != nil {
 			e.next.SetPlaceHolder("Enter Sample ID now!")
 			e.canvas.Focus(e.next)
+			return
 		}
 	}
+
+	e.Entry.TypedKey(key)
 }
 
 func getLastBarcodeNumber(rows []*Row) int {
