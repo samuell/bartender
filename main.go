@@ -177,7 +177,7 @@ func (a *BartenderApp) NewForwardJumpOnReturnEntry(canvas fyne.Canvas, previousE
 		previousEntry.SetNext(entry)
 	}
 	entry.buffer.Reset()
-	entry.idleDelay = 50 * time.Millisecond
+	entry.idleDelay = 1 * time.Second
 	entry.app = a
 	return entry
 }
