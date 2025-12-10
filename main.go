@@ -208,11 +208,11 @@ func (e *ForwardJumpOnReturnEntry) SetNext(entry *ForwardJumpOnReturnEntry) {
 func (e *ForwardJumpOnReturnEntry) TypedRune(r rune) {
 	e.mu.Lock()
 	e.buffer.WriteRune(r)
+	e.mu.Unlock()
+
 	fyne.Do(func() {
-		e.Entry.TypedRune(r)
 		e.SetText(e.buffer.String())
 	})
-	e.mu.Unlock()
 }
 
 func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
@@ -221,13 +221,13 @@ func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
 		return
 	}
 
-	e.mu.Lock()
 	e.Entry.TypedKey(key)
 	if len(key.Name) > 1 {
+		e.mu.Lock()
 		e.buffer.Reset()
 		e.buffer.WriteString(e.Entry.Text)
+		e.mu.Unlock()
 	}
-	e.mu.Unlock()
 }
 
 func (e *ForwardJumpOnReturnEntry) resetTimerAndProcessBuffer(key *fyne.KeyEvent) {
@@ -236,13 +236,14 @@ func (e *ForwardJumpOnReturnEntry) resetTimerAndProcessBuffer(key *fyne.KeyEvent
 	}
 	if key != nil {
 		e.idleTimer = time.AfterFunc(e.idleDelay, func() {
+			e.mu.Lock()
 			barcode := e.buffer.String()
+			e.mu.Unlock()
+
 			if len(barcode) > 0 {
-				e.mu.Lock()
 				fyne.Do(func() {
 					e.SetText(barcode)
 				})
-				e.mu.Unlock()
 				if e.next != nil {
 					fyne.Do(func() {
 						e.next.SetPlaceHolder("Enter Sample ID now!")
