@@ -34,7 +34,7 @@ func NewBartenderApp() *BartenderApp {
 		0,
 		container.NewVBox(),
 	}
-	a.window.Resize(fyne.NewSize(640, 480))
+	a.window.Resize(fyne.NewSize(640, 800))
 	// Table container
 	a.tableContainer = container.NewVBox()
 
@@ -53,7 +53,7 @@ func NewBartenderApp() *BartenderApp {
 	a.tableContainer.Add(header)
 
 	// Initialize with 3 rows
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 8; i++ {
 		a.addRow()
 	}
 
