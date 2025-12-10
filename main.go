@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -15,25 +16,28 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-type Row struct {
-	Barcode  *widget.Entry
-	SampleID *ForwardJumpOnReturnEntry
+func main() {
+	a := NewBartenderApp()
+	a.window.ShowAndRun()
 }
 
-func main() {
-	a := app.New()
+// BartenderApp
 
-	w := a.NewWindow("Barcode mapping")
-	w.Resize(fyne.NewSize(640, 480))
-
-	rows := make([]*Row, 0)
-	rowCounter := 1 // To keep track of the row index for auto-fill
-
+func NewBartenderApp() *BartenderApp {
+	innerApp := app.New()
+	a := &BartenderApp{
+		innerApp,
+		innerApp.NewWindow("Barcode mapping"),
+		[]*Row{},
+		0,
+		container.NewVBox(),
+	}
+	a.window.Resize(fyne.NewSize(640, 480))
 	// Table container
-	tableContainer := container.NewVBox()
+	a.tableContainer = container.NewVBox()
 
 	// Output path entry above table
-	outputPathEntry := NewForwardJumpOnReturnEntry(w.Canvas(), nil)
+	outputPathEntry := a.NewForwardJumpOnReturnEntry(a.window.Canvas(), nil)
 	outputPathEntry.SetText("barcodesheet.csv") // default path
 	outputPathLabel := widget.NewLabel("Output file path:")
 	outputPathContainer := container.NewBorder(nil, nil, outputPathLabel, nil, outputPathEntry)
@@ -43,46 +47,23 @@ func main() {
 		widget.NewLabelWithStyle("barcode", fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("sample_id", fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 	)
-	tableContainer.Add(header)
-
-	// Function to add a new row
-	addRow := func() {
-		rowCounter := getLastBarcodeNumber(rows)
-		barcodeText := fmt.Sprintf("barcode%02d", rowCounter+1)
-		samplePlaceholder := fmt.Sprintf("Sample ID for barcode%02d", rowCounter+1)
-
-		var previous *ForwardJumpOnReturnEntry
-		if len(rows) > 0 {
-			previous = rows[len(rows)-1].SampleID
-		}
-
-		r := &Row{
-			Barcode:  widget.NewEntry(),
-			SampleID: NewForwardJumpOnReturnEntry(w.Canvas(), previous),
-		}
-		r.Barcode.SetText(barcodeText)
-		r.SampleID.SetPlaceHolder(samplePlaceholder)
-
-		rowUI := container.NewGridWithColumns(2, r.Barcode, r.SampleID)
-		tableContainer.Add(rowUI)
-		rows = append(rows, r)
-	}
+	a.tableContainer.Add(header)
 
 	// Initialize with 3 rows
 	for i := 0; i < 3; i++ {
-		addRow()
+		a.addRow()
 	}
 
 	// Buttons
-	addButton := widget.NewButton("Add Row", addRow)
+	addButton := widget.NewButton("Add Row", a.addRow)
 
 	deleteButton := widget.NewButton("Delete Last Row", func() {
-		if len(rows) > 0 {
-			lastIndex := len(rows) - 1
-			tableContainer.Objects = tableContainer.Objects[:len(tableContainer.Objects)-1]
-			rows = rows[:lastIndex]
-			tableContainer.Refresh()
-			rowCounter-- // Decrement counter so next new row continues numbering correctly
+		if len(a.rows) > 0 {
+			lastIndex := len(a.rows) - 1
+			a.tableContainer.Objects = a.tableContainer.Objects[:len(a.tableContainer.Objects)-1]
+			a.rows = a.rows[:lastIndex]
+			a.tableContainer.Refresh()
+			a.rowCounter-- // Decrement counter so next new row continues numbering correctly
 		}
 	})
 
@@ -94,7 +75,7 @@ func main() {
 
 		var sb strings.Builder
 		sb.WriteString("barcode,sample_id\n")
-		for _, r := range rows {
+		for _, r := range a.rows {
 			line := fmt.Sprintf("%s,%s\n", r.Barcode.Text, r.SampleID.Text)
 			sb.WriteString(line)
 		}
@@ -138,22 +119,57 @@ func main() {
 
 		// Show a button to open folder
 
-		tableContainer.Add(msg)
-		tableContainer.Add(openFileButton)
-		tableContainer.Add(showInFolderButton)
-		tableContainer.Refresh()
+		a.tableContainer.Add(msg)
+		a.tableContainer.Add(openFileButton)
+		a.tableContainer.Add(showInFolderButton)
+		a.tableContainer.Refresh()
 	})
 
 	buttons := container.NewHBox(addButton, deleteButton, saveButton)
-	mainContent := container.NewBorder(outputPathContainer, buttons, nil, nil, tableContainer)
+	mainContent := container.NewBorder(outputPathContainer, buttons, nil, nil, a.tableContainer)
 
-	w.SetContent(mainContent)
-	w.ShowAndRun()
+	a.window.SetContent(mainContent)
+	return a
+}
+
+type BartenderApp struct {
+	fyne.App
+	window         fyne.Window
+	rows           []*Row
+	rowCounter     int
+	tableContainer *fyne.Container
+}
+
+type Row struct {
+	Barcode  *widget.Entry
+	SampleID *ForwardJumpOnReturnEntry
+}
+
+func (a *BartenderApp) addRow() {
+	a.rowCounter = getLastBarcodeNumber(a.rows)
+	barcodeText := fmt.Sprintf("barcode%02d", a.rowCounter+1)
+	samplePlaceholder := fmt.Sprintf("Sample ID for barcode%02d", a.rowCounter+1)
+
+	var previous *ForwardJumpOnReturnEntry
+	if len(a.rows) > 0 {
+		previous = a.rows[len(a.rows)-1].SampleID
+	}
+
+	r := &Row{
+		Barcode:  widget.NewEntry(),
+		SampleID: a.NewForwardJumpOnReturnEntry(a.window.Canvas(), previous),
+	}
+	r.Barcode.SetText(barcodeText)
+	r.SampleID.SetPlaceHolder(samplePlaceholder)
+
+	rowUI := container.NewGridWithColumns(2, r.Barcode, r.SampleID)
+	a.tableContainer.Add(rowUI)
+	a.rows = append(a.rows, r)
 }
 
 // ForwardJumpOnReturnEntry
 
-func NewForwardJumpOnReturnEntry(canvas fyne.Canvas, previousEntry *ForwardJumpOnReturnEntry) *ForwardJumpOnReturnEntry {
+func (a *BartenderApp) NewForwardJumpOnReturnEntry(canvas fyne.Canvas, previousEntry *ForwardJumpOnReturnEntry) *ForwardJumpOnReturnEntry {
 	entry := &ForwardJumpOnReturnEntry{}
 	entry.ExtendBaseWidget(entry)
 	entry.canvas = canvas
@@ -161,15 +177,21 @@ func NewForwardJumpOnReturnEntry(canvas fyne.Canvas, previousEntry *ForwardJumpO
 		previousEntry.SetNext(entry)
 	}
 	entry.buffer.Reset()
+	entry.idleDelay = 50 * time.Millisecond
+	entry.app = a
 	return entry
 }
 
 type ForwardJumpOnReturnEntry struct {
 	widget.Entry
-	canvas   fyne.Canvas
-	previous *ForwardJumpOnReturnEntry
-	next     *ForwardJumpOnReturnEntry
-	buffer   strings.Builder
+	app       *BartenderApp
+	canvas    fyne.Canvas
+	previous  *ForwardJumpOnReturnEntry
+	next      *ForwardJumpOnReturnEntry
+	buffer    strings.Builder
+	mu        sync.Mutex
+	idleTimer *time.Timer
+	idleDelay time.Duration
 }
 
 func (e *ForwardJumpOnReturnEntry) SetNext(entry *ForwardJumpOnReturnEntry) {
@@ -177,21 +199,41 @@ func (e *ForwardJumpOnReturnEntry) SetNext(entry *ForwardJumpOnReturnEntry) {
 }
 
 func (e *ForwardJumpOnReturnEntry) TypedRune(r rune) {
+	e.mu.Lock()
 	e.buffer.WriteRune(r)
+	e.resetTimerAndProcessBuffer()
+	e.mu.Unlock()
+}
+
+func (e *ForwardJumpOnReturnEntry) resetTimerAndProcessBuffer() {
+	if e.idleTimer != nil {
+		e.idleTimer.Stop()
+	}
+	e.idleTimer = time.AfterFunc(e.idleDelay, func() {
+		e.mu.Lock()
+		barcode := e.buffer.String()
+		if len(barcode) > 0 {
+			e.SetText(e.buffer.String())
+
+			if e.next == nil {
+				e.app.addRow()
+			}
+			e.next.SetPlaceHolder("Enter Sample ID now!")
+			e.canvas.Focus(e.next)
+		}
+	})
 }
 
 func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
-	if key.Name == fyne.KeyReturn {
+	e.mu.Lock()
+	if key.Name == fyne.KeyReturn || key.Name == fyne.KeyEnter {
 		if e.next != nil {
-			time.Sleep(250 * time.Millisecond)
-			e.next.SetPlaceHolder("Enter Sample ID now!")
-			e.canvas.Focus(e.next)
+			e.resetTimerAndProcessBuffer()
+			e.mu.Unlock()
 			return
 		}
 	}
-
-	e.SetText(e.buffer.String())
-	e.Entry.TypedKey(key)
+	e.mu.Unlock()
 }
 
 func getLastBarcodeNumber(rows []*Row) int {
