@@ -177,7 +177,7 @@ func (a *BartenderApp) NewForwardJumpOnReturnEntry(canvas fyne.Canvas, previousE
 		previousEntry.SetNext(entry)
 	}
 	entry.buffer.Reset()
-	entry.idleDelay = 1 * time.Second
+	entry.idleDelay = 50 * time.Millisecond
 	entry.app = a
 	return entry
 }
@@ -201,40 +201,51 @@ func (e *ForwardJumpOnReturnEntry) SetNext(entry *ForwardJumpOnReturnEntry) {
 func (e *ForwardJumpOnReturnEntry) TypedRune(r rune) {
 	e.mu.Lock()
 	e.buffer.WriteRune(r)
-	e.resetTimerAndProcessBuffer()
-	e.mu.Unlock()
-}
-
-func (e *ForwardJumpOnReturnEntry) resetTimerAndProcessBuffer() {
-	if e.idleTimer != nil {
-		e.idleTimer.Stop()
-	}
-	e.idleTimer = time.AfterFunc(e.idleDelay, func() {
-		e.mu.Lock()
-		barcode := e.buffer.String()
-		if len(barcode) > 0 {
-			fyne.Do(func() {
-				e.SetText(e.buffer.String())
-				if e.next == nil {
-					e.app.addRow()
-				}
-				e.next.SetPlaceHolder("Enter Sample ID now!")
-				e.canvas.Focus(e.next)
-			})
-		}
+	fyne.Do(func() {
+		e.Entry.TypedRune(r)
+		e.SetText(e.buffer.String())
 	})
+	e.mu.Unlock()
 }
 
 func (e *ForwardJumpOnReturnEntry) TypedKey(key *fyne.KeyEvent) {
+	if key.Name == fyne.KeyReturn || key.Name == fyne.KeyEnter || key.Name == fyne.KeyDown {
+		e.resetTimerAndProcessBuffer(key)
+		return
+	}
+
 	e.mu.Lock()
-	if key.Name == fyne.KeyReturn || key.Name == fyne.KeyEnter {
-		if e.next != nil {
-			e.resetTimerAndProcessBuffer()
-			e.mu.Unlock()
-			return
-		}
+	e.Entry.TypedKey(key)
+	if len(key.Name) > 1 {
+		e.buffer.Reset()
+		e.buffer.WriteString(e.Entry.Text)
 	}
 	e.mu.Unlock()
+}
+
+func (e *ForwardJumpOnReturnEntry) resetTimerAndProcessBuffer(key *fyne.KeyEvent) {
+	if e.idleTimer != nil {
+		e.idleTimer.Stop()
+	}
+	if key != nil {
+		e.idleTimer = time.AfterFunc(e.idleDelay, func() {
+			barcode := e.buffer.String()
+			if len(barcode) > 0 {
+				e.mu.Lock()
+				fyne.Do(func() {
+					e.SetText(barcode)
+				})
+				e.mu.Unlock()
+				fyne.Do(func() {
+					if e.next == nil {
+						e.app.addRow()
+					}
+					e.next.SetPlaceHolder("Enter Sample ID now!")
+					e.canvas.Focus(e.next)
+				})
+			}
+		})
+	}
 }
 
 func getLastBarcodeNumber(rows []*Row) int {
