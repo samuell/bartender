@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -37,8 +39,9 @@ func NewBartenderApp() *BartenderApp {
 	a.tableContainer = container.NewVBox()
 
 	// Output path entry above table
-	outputPathEntry := a.NewForwardJumpOnReturnEntry(a.window.Canvas(), nil)
-	outputPathEntry.SetText("barcodesheet.csv") // default path
+	outputPathEntry := widget.NewEntry()
+	now := time.Now()
+	outputPathEntry.SetText("/data/trana/barcodesheets/16s_ont_" + now.Format("060102") + ".csv") // default path
 	outputPathLabel := widget.NewLabel("Output file path:")
 	outputPathContainer := container.NewBorder(nil, nil, outputPathLabel, nil, outputPathEntry)
 
@@ -81,15 +84,13 @@ func NewBartenderApp() *BartenderApp {
 		}
 
 		file, err := os.Create(filePath)
-		if err != nil {
-			fmt.Println("Error creating file:", err)
+		if !CheckMsgDialog(err, "Error creating file", a.window) {
 			return
 		}
 		defer file.Close()
 
 		_, err = file.WriteString(sb.String())
-		if err != nil {
-			fmt.Println("Error writing file:", err)
+		if !CheckMsgDialog(err, "Error writing file", a.window) {
 			return
 		}
 
@@ -98,7 +99,9 @@ func NewBartenderApp() *BartenderApp {
 
 		openFileButton := widget.NewButton("Open file", func() {
 			fileUrl, err := url.Parse("file://" + filePath)
-			CheckMsg(err, "Could not parse url: "+filePath)
+			if !CheckMsgDialog(err, "Could not parse url: "+filePath, a.window) {
+				return
+			}
 			a.OpenURL(fileUrl)
 		})
 
@@ -108,12 +111,16 @@ func NewBartenderApp() *BartenderApp {
 				dirPath = filepath.Dir(filePath)
 			} else {
 				ex, err := os.Executable()
-				CheckMsg(err, "Could not get executable path")
+				if !CheckMsgDialog(err, "Could not get executable path", a.window) {
+					return
+				}
 				dirPath = filepath.Dir(ex)
 			}
 
 			dirUrl, err := url.Parse("file://" + dirPath)
-			CheckMsg(err, "Could not parse url: "+dirPath)
+			if !CheckMsgDialog(err, "Could not parse url: "+dirPath, a.window) {
+				return
+			}
 			a.OpenURL(dirUrl)
 		})
 
@@ -236,13 +243,12 @@ func (e *ForwardJumpOnReturnEntry) resetTimerAndProcessBuffer(key *fyne.KeyEvent
 					e.SetText(barcode)
 				})
 				e.mu.Unlock()
-				fyne.Do(func() {
-					if e.next == nil {
-						e.app.addRow()
-					}
-					e.next.SetPlaceHolder("Enter Sample ID now!")
-					e.canvas.Focus(e.next)
-				})
+				if e.next != nil {
+					fyne.Do(func() {
+						e.next.SetPlaceHolder("Enter Sample ID now!")
+						e.canvas.Focus(e.next)
+					})
+				}
 			}
 		})
 	}
@@ -263,4 +269,12 @@ func CheckMsg(err error, message string) {
 		fmt.Println(message)
 		os.Exit(1)
 	}
+}
+
+func CheckMsgDialog(err error, message string, window fyne.Window) bool {
+	if err != nil {
+		dialog.ShowError(errors.New(fmt.Sprintf("%s:\n%s", message, err.Error())), window)
+		return false
+	}
+	return true
 }
