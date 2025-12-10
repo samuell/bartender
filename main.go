@@ -213,13 +213,14 @@ func (e *ForwardJumpOnReturnEntry) resetTimerAndProcessBuffer() {
 		e.mu.Lock()
 		barcode := e.buffer.String()
 		if len(barcode) > 0 {
-			e.SetText(e.buffer.String())
-
-			if e.next == nil {
-				e.app.addRow()
-			}
-			e.next.SetPlaceHolder("Enter Sample ID now!")
-			e.canvas.Focus(e.next)
+			fyne.Do(func() {
+				e.SetText(e.buffer.String())
+				if e.next == nil {
+					e.app.addRow()
+				}
+				e.next.SetPlaceHolder("Enter Sample ID now!")
+				e.canvas.Focus(e.next)
+			})
 		}
 	})
 }
