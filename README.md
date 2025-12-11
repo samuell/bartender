@@ -4,6 +4,8 @@ A small GUI application for entering sample IDs and produce a barcode-sheet for
 the [TRANA](https://github.com/genomic-medicine-sweden/TRANA) taxonomic
 profiling pipeline for 16S rRNA reads, optimized for use with hand scanners.
 
+![Screenshot](screenshot.png)
+
 ## Installation
 
 The easiest way to install Bartender is to go to the [releases
