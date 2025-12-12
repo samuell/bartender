@@ -34,6 +34,20 @@ If you want to build the application yourself, you need:
 - The [Go toolchain](https://go.dev/)
 - The [fyne-cross tool](https://github.com/fyne-io/fyne-cross) (for building statically, which works on more devices)
 
-## Implementation
+To build a statically linked binary for 64bit Linux with Intel/AMD CPU, run this command:
 
-The application is written in Go, using the [Fyne GUI toolkit](https://fyne.io/).
+```bash
+make build-static
+```
+
+The resulting binary will be created in:
+
+```
+fyne-cross/bin/linux-amd64/bartender
+```
+
+## Implementation details
+
+The application is written in Go, using the cross-platform [Fyne GUI toolkit](https://fyne.io/)
+which means the Makefile can be adjusted to allow compiling for different
+platforms like Mac and Windows too (though not yet tested).
